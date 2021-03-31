@@ -7,6 +7,9 @@ AR := ${TOOLCHAIN_BASE}ar
 
 ARCH := arm64
 
+WORK_PATH := /home/ywg/ywg_workspace/BiscuitOS_arm64/output/linux-5.0-aarch
+ROOT_FS_USERSPACE := /home/ywg/ywg_workspace/BiscuitOS_arm64/output/linux-5.0-aarch/rootfs/rootfs/user_space
+RUN_OS := /home/ywg/ywg_workspace/BiscuitOS_arm64/output/linux-5.0-aarch/RunBiscuitOS.sh
 
 KERNEL_PATH := /home/ywg/ywg_workspace/BiscuitOS_arm64/output/linux-5.0-aarch/linux/linux
 MODULE_PATH := $(shell pwd)
@@ -18,6 +21,10 @@ all:
 	make -C ${KERNEL_PATH} M=${MODULE_PATH} ARCH=${ARCH} CROSS_COMPILE=${TOOLCHAIN_BASE}  modules 
 	mv ${GENERATE_FILE} ${OUT_PATH}
 
+install:
+	cp ${OUT_PATH}/*.ko ${ROOT_FS_USERSPACE}
+	cd ${WORK_PATH}
+	${RUN_OS} pack
 
 clean:
 	rm -f ${OUT_PATH}/*
