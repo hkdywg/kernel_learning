@@ -1,0 +1,87 @@
+/*
+ *  dts demo code
+ *  
+ *  (C) 2021.04.25 <hkdywg@163.com>
+ *
+ *  This program is free software; you can redistribute it and/r modify
+ *  it under the terms of the GNU General Public License version 2 as
+ *  published by the Free Software Foundation.
+ * */
+
+/ {
+    DTS_demo {
+        compatible = "DTS_demo, hkdywg";
+        status = "okay";
+        #address-cells = <1>;
+        #size-cells = <1>;
+        ranges = <0x78000000 0x00000000 0x90000000 0x10000000>;
+        viros_int = <0x10203040>;
+        viros_mult = <0x10203040 0x50607080
+                      0x90a0b0c0 0xd0e0f000>;
+        viros_name = "viros";
+        reg = <0x11223344 0x55667788
+               0x10203040 0x50607080
+               0x99aabbcc 0xddeeff00
+               0x90a0b0c0 0xd0e0f000>;
+
+        mac-address = [00 00 00 00 00 00];
+        loacl-mac-address = [20 21 04 26 11 14];
+        address = [00 0a 35 00 bc c0];
+        viros_leg;
+        phy-hanlde = <&phy0>;
+        reset-gpio = <&gpio0 25 0>;
+
+        viros-string = "u-boot", "kernel", "rootfs", "viros";
+        viros-data = <0x10203040 0x50607080 0x90a0b0c0 0xd0e0f000>;
+        viros-data-array = <0x10203040 0x50607080 0x90a0b0c0 0xd0e0f000>;
+
+        child0 {
+            compatible = "Child0, hkdywg";
+            status = "okay";
+            reg = <0x80000000 0x20000000
+                   0x30000000 0x40000000>;
+        };
+
+        child1 {
+            compatible = "Child1, hkdywg";
+            status = "disabled";
+        };
+    };
+
+    DTS_demoX {
+        compatible = "DTS_demo, hkdywg-X";
+        name-space = "demoX";
+        status = "okay";
+    };
+
+    virnode_0 {
+        compatible = "virnode, hkdywg";
+        reg = <0x58000000 0x100
+               0x58100000 0x100
+               0x58200000 0x100>,
+        status = "okay";
+    };
+
+    gpio0: gpio@0 {
+        #gpio-cells = <2>;
+        compatible = "gpio, viros";
+    };
+
+    phy0: phy@0 {
+        #phy-cells = <3>;
+        compatible = "PHY0, hkdywg";
+        status = "okay";
+        phy-mode = "rgmii";
+    };
+
+    mdio {
+        compatible = "DTS_demo, hkdywg";
+        #address-cells = <0x01>;
+        #size-cells = <0x01>;
+
+        phy1: phy@1 {
+            reg = <0x01>;
+            status = "okay";
+        };
+    };
+};
