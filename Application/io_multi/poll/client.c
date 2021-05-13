@@ -39,6 +39,9 @@ static void handle_connection(int sockfd)
     
     pfds[0].fd = sockfd;
     pfds[0].events = POLLIN;
+
+    pfds[1].fd = STDIN_FILENO;
+    pfds[1].events = POLLIN;
     for( ; ; )
     {
         poll(pfds, 2, -1);
@@ -50,7 +53,7 @@ static void handle_connection(int sockfd)
                 fprintf(stderr, "client: server is closed.\n");
                 close(sockfd);
             }
-            write(STDOUT_FILENO, recvline, n);
+           // write(STDOUT_FILENO, recvline, n);
         }
         if(pfds[1].revents & POLLIN)
         {

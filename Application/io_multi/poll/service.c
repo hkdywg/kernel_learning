@@ -90,13 +90,22 @@ static void do_poll(int listenfd)
                     exit(1);
                 }
             }
-            fprintf(stdout, "accept a new client: %s:%d\n", inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port);
+            //fprintf(stdout, "accept a new client: %s:%d\n", inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port);
+            printf("accept a new client: %d\n", cliaddr.sin_port);
             for(i = 1; i < OPEN_MAX; i++)
+            {
+                if(clientfds[i].fd < 0)
+                {
+                    clientfds[i].fd = connfd;
+                    break;
+                }
+            }       
+            if(i == OPEN_MAX)
             {
                 fprintf(stderr, "too many clients.\n");
                 exit(1);
-            }       
-            clientfds[1].events = POLLIN;
+            }
+            clientfds[i].events = POLLIN;
             maxi = (i > maxi ? i : maxi);
             if(--nready <= 0)
                 continue;
@@ -117,6 +126,7 @@ static void handle_connection(struct pollfd *connfds, int num)
         if(connfds[i].revents & POLLIN)
         {
             n = read(connfds[i].fd, buf, MAXLINE);
+            printf("receive data : %s\n", buf);
             if(n == 0)
             {
                 close(connfds[i].fd);
