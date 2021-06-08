@@ -42,7 +42,7 @@ static __init int bitmap_demo_init(void)
             printk("logic and dst: %#lx\n", dst);
 
             /* bit map or operation */
-            bitmap_or(&dst, &bitmap1, &bitmap2, 32)
+            bitmap_or(&dst, &bitmap1, &bitmap2, 32);
             printk("logic or dst: %#lx\n", dst);
 
             /* bit map xor operation */
@@ -78,22 +78,22 @@ static __init int bitmap_demo_init(void)
         case BITMAP_TRANSLATE:
         {
             /* bit map cover u32 array into bitmap */
-            unsigned int array[] = {0x12345678, 0x78563412};
+            unsigned int array[] = {0x12345678, 0x78563412, 0xaabbccdd, 0xddccbbaa};
             unsigned long bitmap[2];
 
-            bitmap_from_array(bitmap, array, 64);
-            printk("bitmap cover 32 to bitmap: %#lx%#lx\n", bitmap[0], bitmap[1]);
+            bitmap_from_arr32(bitmap, array, 64);
+            printk("bitmap cover 32 to bitmap: %#lx------%#lx\n", bitmap[0], bitmap[1]);
 
             /* bit map cover bitmap to u32 */
             array[0] = 0x00000000;
             array[1] = 0x00000000;
 
-            bitmap_to_array(array, bitmap, 64);
-            printk("bitmap cover bitmap to u32: %x-%x\n", array[1], array[0]);
+            bitmap_to_arr32(array, bitmap, 64);
+            printk("bitmap cover bitmap to u32: %#x-%#x\n", array[1], array[0]);
 
             /* conver u64 to bitmap */
             u64 map = 0x123456789abcdef;
-            bitmap_from_u64(bitmap,, map);
+            bitmap_from_u64(bitmap, map);
             printk("%#llx cover to [0]%#lx [1]%#lx\n", map, bitmap[0], bitmap[1]);
         }
         break;
@@ -125,26 +125,27 @@ static __init int bitmap_demo_init(void)
             printk("find %#lx first zero area postion is : %d\n", bitmap1, pos);
 
             /* find first set bit */
-            pos = find_first_bit(bitmap1, 64);
+            pos = find_first_bit(&bitmap1, 32);
             printk("find %#lx first set bit position is : %d\n", bitmap1, pos);
 
             /* find first zero bit */
-            pos = find_first_zero_bit(bitmap1, 64);
+            pos = find_first_zero_bit(&bitmap1, 64);
             printk("find %#lx first zero bit position is : %d\n", bitmap1, pos);
             
             /* find last set bit */
-            pos = find_last_bit(bitmap1, 64);
+            pos = find_last_bit(&bitmap1, 64);
             printk("find %#lx first zero bit position is : %d\n", bitmap1, pos);
         }
         break;
 
         case BITMAP_MASK:
         {
+            int i = 0;
            /* bitmap mask operation */ 
-            for(int i = 0;i < 32; i++)
+            for(i = 0;i < 32; i++)
                 printk("bitmap(%d):      %#lx\n", i, BITMAP_FIRST_WORD_MASK(i));
             
-            for(int i = 0;i < 32; i++)
+            for(i = 0;i < 32; i++)
                 printk("bitmap(%d):      %#lx\n", i, BITMAP_LAST_WORD_MASK(i));
         }
         break;
@@ -155,12 +156,11 @@ static __init int bitmap_demo_init(void)
             unsigned long pos;
             bitmap_set(bitmap, 4, 8);
 
+            for_each_set_bit(pos, bitmap, 24)
+                printk("%#lx set POS: %ld\n", bitmap, pos);
+
             for_each_clear_bit(pos, bitmap, 24)
-                printk("POS: %ld\n", pos);
-
-            for_each_set_bit(pos, bitmap, 24);
-                printk("POS: %ld\n", pos);
-
+                printk("clear POS: %ld\n", pos);
         }
         break;
 
@@ -189,7 +189,7 @@ static __init int bitmap_demo_init(void)
             if(bitmap_equal(&bitmap1, &bitmap2, 4))
                 printk("%#lx equal %#lx through 0 to 3.\n", bitmap1, bitmap2);
 
-            printk("the weight of %#lx is %d\n", bitmap2, bitmap_weight(&bitmap, 32));
+            printk("the weight of %#lx is %d\n", bitmap2, bitmap_weight(&bitmap2, 32));
         }
         break;
 
@@ -202,4 +202,6 @@ static __init int bitmap_demo_init(void)
 }
 
 
-device_initcall(atomic_demo_init);
+device_initcall(bitmap_demo_init);
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("yinwg, hkdywg@163.com");
