@@ -2,6 +2,8 @@
 .PHONY: all cow thread life_period globalfifo
 .PHONY: clean
 
+obj-m += globalfifo.o
+
 OUTDIR := out
 TOOLCHAIN_BASE := /home/ywg/ywg_workspace/BiscuitOS_arm64/output/linux-5.0-aarch/aarch64-linux-gnu/gcc-linaro-7.4.1-2019.02-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-
 CC := ${TOOLCHAIN_BASE}gcc
@@ -14,7 +16,7 @@ ROOT_FS_USERSPACE := /home/ywg/ywg_workspace/BiscuitOS_arm64/output/linux-5.0-aa
 RUN_OS := /home/ywg/ywg_workspace/BiscuitOS_arm64/output/linux-5.0-aarch/RunBiscuitOS.sh
 KERNEL_PATH := /home/ywg/ywg_workspace/BiscuitOS_arm64/output/linux-5.0-aarch/linux/linux
 MODULE_PATH := $(shell pwd)
-GENERATE_FILE := *.o *.ko *.order *.symvers *.mod.c *.mod
+GENERATE_FILE := *.o *.ko *.order *.symvers *.mod.c 
 
 define check_outdir
 	if [ ! -d ${OUTDIR} ];then \
@@ -24,11 +26,11 @@ endef
 
 
 define mv_outfile
-	@[ -e $1 ] && [ -d $ ] && mv $1 $2
+	[ -d $2 ] && mv $1 $2
 endef
 
 #$(eval $(call check_outdir))
-all: cow thread
+all: cow thread life_period globalfifo
 
 cow:cow.c
 	$(check_outdir)
@@ -45,6 +47,7 @@ life_period:life_period.c
 	@gcc $^ -o $@
 	$(call mv_outfile,$@,${OUTDIR})
 
+test_file :=  *.ko *.o
 globalfifo:
 	$(check_outdir)
 	make -C ${KERNEL_PATH} M=${MODULE_PATH} ARCH=${ARCH} CROSS_COMPILE=${TOOLCHAIN_BASE}  modules

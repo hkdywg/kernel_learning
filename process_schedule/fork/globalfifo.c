@@ -5,9 +5,10 @@
 #include <linux/cdev.h>
 #include <linux/slab.h>
 #include <linux/poll.h>
-#include <linux/platform.h>
+#include <linux/platform_device.h>
 #include <linux/of_device.h>
 #include <linux/miscdevice.h>
+#include <linux/sched/signal.h>
 
 
 #define GLOBALFIFO_SIZE         0x1000
@@ -40,13 +41,13 @@ static ssize_t globalfifo_read(struct file *filp, char __user *buf, size_t count
 
     while(dev->current_len == 0)
     {
-        if(filp->f_flags & O_NOBLOCK)
+        if(filp->f_flags & O_NONBLOCK)
         {
             ret = -EAGAIN;
             goto out;
         }
 
-        __set_current_state(TASK_INTERRUPTILBLE);
+        __set_current_state(TASK_INTERRUPTIBLE);
         mutex_unlock(&dev->mutex);
 
         schedule();
@@ -98,7 +99,7 @@ static ssize_t globalfifo_write(struct file *filp, const char __user *buf, size_
 
     while(dev->current_len == GLOBALFIFO_SIZE)
     {
-        if(filp->flags & O_NOBLOCK)
+        if(filp->f_flags & O_NONBLOCK)
         {
             ret = -EAGAIN;
             goto out;
@@ -189,10 +190,6 @@ static long globalfifo_ioctl(struct file *filp, unsigned int cmd, unsigned long 
     return 0;
 }
 
-static int globalfifo_release(struct inode *inode, struct file *filp)
-{
-    globalfifo_fasync(-1, filp, 0);
-}
 
 static int globalfifo_fasync(int fd, struct file *filp, int mode)
 {
@@ -201,12 +198,17 @@ static int globalfifo_fasync(int fd, struct file *filp, int mode)
     return fasync_helper(fd, filp, mode, &dev->async_queue);
 }
 
-static const struct file_operation globalfifo_fops = {
+static int globalfifo_release(struct inode *inode, struct file *filp)
+{
+    globalfifo_fasync(-1, filp, 0);
+}
+
+static const struct file_operations globalfifo_fops = {
     .owner = THIS_MODULE,
     .read = globalfifo_read,
     .write = globalfifo_write,
     .unlocked_ioctl = globalfifo_ioctl,
-    .poll = globalfifo_fasync,
+    .poll = globalfifo_poll,
     .open = globalfifo_open,
     .release = globalfifo_release,
 };
@@ -216,7 +218,7 @@ static int globalfifo_probe(struct platform_device *pdev)
     struct globalfifo_dev *gl;
     int ret;
 
-    gl = devm_kzalloc(&pdev->dev, sizeof(struct globalfifo), GFP_KERNEL);
+    gl = devm_kzalloc(&pdev->dev, sizeof(struct globalfifo_dev), GFP_KERNEL);
     if(!gl)
         return -ENOMEM;
 
@@ -230,6 +232,7 @@ static int globalfifo_probe(struct platform_device *pdev)
         goto err;
 
     dev_info(&pdev->dev, "globalfifo drv probed\n");
+    printk("globalfifo drv probed\n");
     return 0;
 
 err:
