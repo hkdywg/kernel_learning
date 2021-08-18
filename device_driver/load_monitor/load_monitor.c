@@ -25,15 +25,15 @@ static unsigned long *ptr_avenrun;
 
 #define FSHIFT          11
 #define FIXED_1         (1<<FSHIFT)
-#define LOAD_INIT(x)    ((x) >> FSHIFT)
-#define LOAD_FRAC(x)    LOAD_INIT((x) & (FIXED_1-1) * 100)
+#define LOAD_INT(x)    ((x) >> FSHIFT)
+#define LOAD_FRAC(x)    LOAD_INT((x) & (FIXED_1-1) * 100)
 
 #define BACKTRACE_DEPTH 10
 
 extern struct task_struct init_task;
 
 #define next_task(p) \
-        list_entry_rcu((p)->task.next, struct task_struct, tasks)
+        list_entry_rcu((p)->tasks.next, struct task_struct, tasks)
 
 #define next_thread(p) \
         list_entry_rcu(p->thread_group.next, struct task_struct, thread_group)
@@ -57,12 +57,12 @@ static void  print_all_task_stack(void)
 
     printk("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
     printk("\tLoad: %lu.%02lu, %lu.%02lu, %lu.%02lu\n",
-           LOAD_INIT(ptr_avenrun[0]), LOAD_FRAC(ptr_avenrun[0]),
-           LOAD_INIT(ptr_avenrun[1]), LOAD_FRAC(ptr_avenrun[1]),
-           LOAD_INIT(ptr_avenrun[2]), LOAD_FRAC(ptr_avenrun[2])
+           LOAD_INT(ptr_avenrun[0]), LOAD_FRAC(ptr_avenrun[0]),
+           LOAD_INT(ptr_avenrun[1]), LOAD_FRAC(ptr_avenrun[1]),
+           LOAD_INT(ptr_avenrun[2]), LOAD_FRAC(ptr_avenrun[2])
            );
 
-    rcu_read_lock()；
+    rcu_read_lock();
 
     printk("dump running task.\n");
     do_each_thread(g, p)
@@ -71,7 +71,7 @@ static void  print_all_task_stack(void)
         {
             printk("running task, comm: %s, pid %d\n", p->comm, p->pid);
             memset(&trace, 0, sizeof(trace));
-            memset(backrace, 0, BACKTRACE_DEPTH * sizeof(unsigned long));
+            memset(backtrace, 0, BACKTRACE_DEPTH * sizeof(unsigned long));
             trace.max_entries = BACKTRACE_DEPTH;
             trace.entries = backtrace;
             save_stack_trace_tsk(p, &trace);
@@ -86,13 +86,13 @@ static void  print_all_task_stack(void)
         {
             printk("uninterruptible task, comm: %s, pid %d\n", p->comm, p->pid);
             memset(&trace, 0, sizeof(trace));
-            memset(backrace, 0, BACKTRACE_DEPTH * sizeof(unsigned long));
+            memset(backtrace, 0, BACKTRACE_DEPTH * sizeof(unsigned long));
             trace.max_entries = BACKTRACE_DEPTH;
             trace.entries = backtrace;
             save_stack_trace_tsk(p, &trace);
             print_stack_trace(&trace, 0);
         }
-    }
+    } while_each_thread(g, p);
     rcu_read_unlock();
 }
 
@@ -100,13 +100,14 @@ static void check_load(void)
 {
     static ktime_t last;
     u64 ms;
-    intt load = LOAD_INIT(ptr_avenrun[0]);      
+    int load = LOAD_INT(ptr_avenrun[0]);      
+//    printk("load = %d\n", load);
 
-    if(load < 3)
-        return;
-
+//    if(load < 3)
+ //       return;
+    
     ms = ktime_to_ms(ktime_sub(ktime_get(), last));
-    if(ms > 10 * 1000)
+    if(ms < 10 * 1000)
         return;
 
     last = ktime_get();
@@ -134,6 +135,7 @@ static void start_timer(void)
 static __init int load_monitor_init(void)
 {
     ptr_avenrun = (void *)kallsyms_lookup_name("avenrun");
+    printk("ptr_avenrun = %x\n", ptr_avenrun);
     if(!ptr_avenrun)
         return -EINVAL;
 
