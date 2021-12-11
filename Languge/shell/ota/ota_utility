@@ -1,0 +1,38 @@
+#!/bin/sh
+
+pipe="/tmp/otapipe"
+resetreason="normal"
+file="/userdata/cache/command"
+unzip_path="/userdata/cache/verify_tmp"
+ota_tool="/usr/bin/ota_tool"
+
+function get_resetreason()
+{
+    resetreason=$(${ota_tool} -- resetreason g) 
+}
+
+if [ x"${resetreason}" = x"recovery" ];then
+    if [ ! -f $file ] || [ ! -d ${unzip_path} ];then
+        echo "$file or $unzip_path not exist"
+        exit 1
+    else
+        command=$(cat $file)
+        echo "$command"
+        $command
+    fi
+else
+
+    if [ ! -p $pipe ];then
+        mkfifo $pipe
+        if [ $? -ne 0 ];then
+            echo "Error: mkfifo $pipe failed!"
+            exit 1
+        fi
+    fi
+
+    while true
+    do
+
+    done
+
+fi
