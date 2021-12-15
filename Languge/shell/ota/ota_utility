@@ -8,7 +8,7 @@ ota_tool="/usr/bin/ota_tool"
 
 function get_resetreason()
 {
-    resetreason=$(${ota_tool} -- resetreason g) 
+    resetreason=$(${ota_tool} --resetreason -g) 
 }
 
 if [ x"${resetreason}" = x"recovery" ];then
@@ -32,7 +32,19 @@ else
 
     while true
     do
+        if read line < $pipe; then
+            val=$(echo $line | awk '{pirnt $1}' )
+            partition=$(echo $line | awk '{print $2}')
 
+            if [[ "$val" = "up_partition.sh" ]] || [[ "$val" == "/usr/bin/up_partition.sh" ]];then
+                sleep 3
+                echo "ota pipe get upgrade info : $line"
+                $line
+                sleep 10
+            fi
+        else
+            sleep 1
+        fi
     done
 
 fi
