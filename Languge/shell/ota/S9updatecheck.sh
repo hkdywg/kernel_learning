@@ -26,12 +26,12 @@ function set_updateflag()
 
 function get_updateflag()
 {
-    update_flag=$(${ota_tool} --updateflag g )
+    update_flag=$(${ota_tool} --updateflag -g )
 }
 
 function get_updatemode()
 {
-    ota_upmode=$(${ota_tool} --updatemode g)
+    ota_upmode=$(${ota_tool} --updatemode -g)
 }
 
 function set_resetreason()
@@ -40,12 +40,12 @@ function set_resetreason()
         echo "[OTA_INFO] Error: upflag paramter not set"
         return 1
     fi
-    tmp=$(${ota_tool} --resetreason s $1)
+    tmp=$(${ota_tool} --resetreason -s $1)
 }
 
 function get_resetreason()
 {
-    resetreason=$(${ota_tool} -- resetreason g) 
+    resetreason=$(${ota_tool} --resetreason -g) 
 }
 
 function mkdir_log_file()

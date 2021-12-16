@@ -8,6 +8,16 @@ function usage()
     echo "      file_name: update img's name"
 }
 
+function log_path_check()
+{
+    if [ ! -d ${ota_logpath}  ];then
+        mkdir -p $ota_logpath
+        touch $ota_info
+        touch $progress
+        touch $update_result
+    fi
+}
+
 function partition_to_number()
 {
     local partname=$1
@@ -48,36 +58,111 @@ function get_ab_partition_status()
     printinfo "get ab_partition_status $ab_partition_status"
 }
 
+function verify_rsa_signature()
+{
+    local file="${upgrade_file_path}"
+    rm -rf $file
+    mkdir -p $file
+    local flag="true"
+    local pubkey="/etc/pubkey.pem"
+    local binary="${file}/binary.txt"
+
+    unzip -q $1 -d ${file}
+    local signature_file=${file}/signature.txt
+
+    if [ -f $signature_file ];then
+        tmp_file=$(cat $signatur_file | sed 's/\= /\=/g')
+        for line in $tmp_file
+        do
+            local update_file=${line##*(}
+            update_file=${update_file%\)*}  
+            update_file=${file}/${update_file}
+            local signature=${line##*=}
+
+            if [ -f $update_file ];then
+                for i in $(seq 0 2 ${#signature})
+                do
+                    s1=${signature:$i:2}
+                    printf "\x${s1}"
+                done > $binary
+
+                # openssl verify signature
+                result=$(openssl dgst -verify $pubkey -sha256 -signature $binary $update_file)
+                if [ x"$result" = x"Verify OK" ];then
+                    printinfo "Error: $update_file verify failed"
+                    flag="false"
+                    break
+                fi
+            else
+                printinfo "Error: $update_file not exist"
+                flag="false"
+                break
+            fi
+        done    
+    else
+        printinfo "warning: file signature.txt not exist"
+        flag="false"
+    fi
+
+    if [ x"$flag" = x"false" ];then
+        printinfo "warning: rsa verify signature failed !"
+ #       rm -rf $file
+ #       exit 1
+    else
+        printinfo "rsa verify signature success !"
+    fi
+    printprogress "20%"
+}
+
+function check_sys_free_space()
+{
+    local userdata_free_space tmp_free_space
+
+    # get /userdata and /tmp free space
+    if [ x"$ota_bootmode" = x"emmc" ];then
+        userdata_free_space=$(df -k /userdata | grep "userdata" | awk '{print $4}')
+    else
+        userdata_free_space=$(df -k /userdata | grep "ubi" | awk '{print $4}')
+    fi
+    tmp_free_space=$(df -k /tmp/ | grep "tmp" | awk '{print $4}')
+
+    # get update file size
+    val=$(unzip -l $image)
+    val=${val##*------}
+    upgrade_file_size=$(echo $val | awk '{print $1}')
+
+    upgrade_need_space=$(($upgrade_file_size/1024))
+
+    printinfo "upgrade_need_space: $upgrade_need_space"
+    printinfo "tmp_free_space: $tmp_free_space"
+    printinfo "userdata_free_space: $userdata_free_space"
+
+    if [ $upgrade_need_space -gt $userdata_free_space ] && [ $upgrade_need_space -gt $tmp_free_space ];then
+        printinfo "Error: not enough space in system"
+        echo "2" >> $result
+        exit 1
+    elif [ $userdata_free_space -gt $upgrade_need_space ];then
+        upgrade_file_path="/userdata/upgrade"
+    elif [ $tmp_free_space -gt $upgrade_need_space ];then
+        upgrade_file_path="/tmp"
+    fi
+    printprogress "10%"
+}
+
 
 function paramter_init()
 {
-    # get partition and file name 
-    local file="${upgrade_file_path}/$image"
-    if [ ! -f $file ];then
-        printinfo "Error: $file not exist"
-        return 1
-    fi
-
-    # get update img
-    local suffix=${image##*.}
-    if [ x"$suffix" = x"zip" ];then
-        # get update flag
-        up_flag=$(${ota_tool} --updateflag -g )
-        unzip $image
-        image=$(ls *.img)
-    fi
-
     # get system partition status
     if [ x"$ota_upmode" = x"AB" ];then
         get_ab_partition_status
     fi
-    printprogress "5%"
+    printprogress "35%"
 }
 
 function update_flag()
 {
-    $ota_tool --upflag -s $1
-    local flag=$($ota_tool --upflag -g)
+    $ota_tool --updateflag -s $1
+    local flag=$($ota_tool --updateflag -g)
 
     if [ x"$flag" = x"$1" ];then
         printinfo "update flag $flag success ! "
@@ -173,6 +258,7 @@ function prepare_tmp_rootfs()
     mkdir -p ${minirootfs}/bin
     mkdir -p ${minirootfs}/dev
     mkdir -p ${minirootfs}/proc
+    mkdir -p ${minirootfs}/sys
     mkdir -p ${minirootfs}/tmp
     mkdir -p ${minirootfs}/userdata
 
@@ -290,7 +376,7 @@ function upgrade_uboot()
             sync
         fi
         printinfo "dd if=${upgrade_file_path}/uboot.img of=/dev/mmcblk0p${partition_id} bs=512"
-        dd if=${upgrade_file_path}/uboot.img of=/dev/mmcblk0p${partition_id} bs=512
+        dd if=${upgrade_file_path}/uboot.img of=/dev/mmcblk0p${partition_id} bs=512 2> /dev/null
         sync
         ret=$?
     fi
@@ -388,6 +474,8 @@ function update_img()
     local file=${upgrade_file_path}/tmpdir/update.sh
     local ret
 
+    partition=${partition%%.zip}
+
     if [ x"$partition" = x"all" ];then
         upgrade_all
         ret=$?
@@ -424,7 +512,7 @@ function update_img()
         fi
     fi
     
-    if [ x"ret" = x"0" ];then
+    if [ x"$ret" = x"0" ];then
         printinfo "update_img success!"
         printprogress "90%"
     else
@@ -438,6 +526,15 @@ function update_img()
 
 function all()
 {
+    # check log path
+    log_path_check
+
+    # check free space is enough
+    check_sys_free_space 
+
+    # verify signature
+    verify_rsa_signature $image
+
     # init paramter: partition, file, name
     paramter_init
     if [ $? -ne 0 ];then
@@ -455,7 +552,7 @@ function all()
 
 partition=$1
 image=$2
-upgrade_file_path=$3
+upgrade_file_path=''
 
 ota_logpath="/userdata/cache"
 progress="${ota_logpath}/progress"
@@ -465,7 +562,7 @@ update_result="${ota_logpath}/result"
 ota_tool="/usr/bin/ota_tool"
 
 update_flag=0
-ota_upmode="AB"
+ota_upmode="single"
 ab_partition_status=0
 reboot_flag=0
 resetreason="normal"
