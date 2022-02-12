@@ -1,9 +1,9 @@
 
 OUT_PATH := $(shell pwd)/out
 
-all: bubblesort
+all: bubblesort selectsort
 	test -d ${OUT_PATH} || mkdir -p ${OUT_PATH}
-	mv $< ${OUT_PATH}
+	mv $^ ${OUT_PATH}
 
 clean:
 	rm -f ${OUT_PATH}/*
@@ -11,3 +11,6 @@ clean:
 
 bubblesort:
 	@gcc -g -o bubblesort bubblesort.c
+
+selectsort:
+	@gcc -g -o selectsort selectsort.c
