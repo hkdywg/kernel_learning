@@ -1,7 +1,7 @@
 
 OUT_PATH := $(shell pwd)/out
 
-all: bubblesort selectsort insertsort shellsort mergesort
+all: bubblesort selectsort insertsort shellsort mergesort fastsort
 	test -d ${OUT_PATH} || mkdir -p ${OUT_PATH}
 	mv $^ ${OUT_PATH}
 
@@ -23,3 +23,6 @@ sheelsort:
 
 mergesort:
 	@gcc -g -o mergesort mergesort.c
+
+fastsort:
+	@gcc -g -o fastsort fastsort.c
