@@ -1,7 +1,7 @@
 
 OUT_PATH := $(shell pwd)/out
 
-all: bubblesort selectsort insertsort
+all: bubblesort selectsort insertsort shellsort
 	test -d ${OUT_PATH} || mkdir -p ${OUT_PATH}
 	mv $^ ${OUT_PATH}
 
@@ -17,3 +17,6 @@ selectsort:
 
 insertsort:
 	@gcc -g -o insertsort insertsort.c
+
+sheelsort:
+	@gcc -g -o shellsort shellsort.c
