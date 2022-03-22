@@ -12,6 +12,8 @@ if [ -z `which sphinx-build` ];then
 	pip3 install sphinx
     pip3 install sphinx_rtd_theme
 fi
+#install ctags
+[ -z `which ctags` ] && sudo apt install -y ctags
 #install vimplus
 vimplus_giturl=https://github.com/hkdywg/vimplus.git
 git clone ${vimplus_giturl} ~/.vim
